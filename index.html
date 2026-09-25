@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickList — Campus Listing Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2430;
+    --ink-soft:#4A5568;
+    --paper:#F1F0EA;
+    --card:#FFFFFF;
+    --rail:#16324F;
+    --rail-ink:#EDEEE7;
+    --amber:#D98E27;
+    --amber-ink:#5C3B0A;
+    --good:#2F6F4E;
+    --good-bg:#E4F0E6;
+    --bad:#B14A3F;
+    --bad-bg:#F5E4E1;
+    --line: rgba(27,36,48,0.12);
+    --radius: 3px;
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#EDEEE7; --ink-soft:#B7BEC9; --paper:#131720; --card:#1B222E;
+      --rail:#0D1620; --rail-ink:#EDEEE7; --line: rgba(237,238,231,0.14);
+      --good-bg:#1C2E22; --bad-bg:#301F1D;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#EDEEE7; --ink-soft:#B7BEC9; --paper:#131720; --card:#1B222E;
+    --rail:#0D1620; --rail-ink:#EDEEE7; --line: rgba(237,238,231,0.14);
+    --good-bg:#1C2E22; --bad-bg:#301F1D;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;}
+  .rail{background:var(--rail);color:var(--rail-ink);padding:22px 20px 26px;}
+  .rail-inner{max-width:1000px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+  .word{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(28px,5vw,38px);letter-spacing:-0.01em;margin:0;}
+  .word span{color:var(--amber);}
+  .tagline{margin:4px 0 0;color:#C7CEDB;font-size:14px;max-width:420px;}
+  .stat-strip{display:flex;gap:18px;font-size:13px;color:#C7CEDB;}
+  .stat-strip b{color:var(--rail-ink);font-size:18px;font-family:'Fraunces',serif;display:block;font-weight:600;}
+  main{max-width:1000px;margin:0 auto;padding:22px 20px 60px;}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px;}
+  .search{flex:1;min-width:200px;position:relative;}
+  .search input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);color:var(--ink);font-size:14px;font-family:inherit;}
+  select.filter{padding:11px 12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);color:var(--ink);font-size:14px;font-family:inherit;}
+  .btn{border:none;border-radius:var(--radius);padding:11px 18px;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit;}
+  .btn-primary{background:var(--amber);color:#26170300;color:#241300;}
+  .btn-primary:hover{filter:brightness(0.95);}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+  .btn-ghost:hover{background:var(--line);}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .chip{padding:6px 12px;border-radius:100px;border:1px solid var(--line);font-size:12.5px;cursor:pointer;background:var(--card);color:var(--ink-soft);}
+  .chip.active{background:var(--rail);color:var(--rail-ink);border-color:var(--rail);}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;position:relative;}
+  .tab{position:absolute;top:0;left:16px;background:var(--amber);color:#241300;font-size:11px;font-weight:600;padding:3px 9px 4px;border-radius:0 0 4px 4px;letter-spacing:.02em;}
+  .thumb{width:100%;height:140px;object-fit:cover;background:var(--paper);display:block;border-bottom:1px solid var(--line);}
+  .thumb-empty{width:100%;height:140px;background:repeating-linear-gradient(45deg,var(--paper),var(--paper) 10px,var(--line) 10px,var(--line) 11px);display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:12px;border-bottom:1px solid var(--line);}
+  .card-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1;}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-top:2px;}
+  .card-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;margin:0;line-height:1.25;}
+  .type-badge{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:100px;white-space:nowrap;border:1px solid var(--line);color:var(--ink-soft);}
+  .desc{font-size:13px;color:var(--ink-soft);line-height:1.5;margin:0;flex:1;}
+  .meta{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;}
+  .rep{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--good-bg);color:var(--good);}
+  .rep.low{background:var(--bad-bg);color:var(--bad);}
+  .card-actions{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;}
+  .card-actions .btn{padding:8px 12px;font-size:12.5px;flex:1;}
+  .contact-box{background:var(--paper);border:1px dashed var(--line);border-radius:var(--radius);padding:8px 10px;font-size:12.5px;}
+  .status{font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px;}
+  .status.open{background:var(--good-bg);color:var(--good);}
+  .status.returned{background:var(--line);color:var(--ink-soft);}
+  .vote{display:flex;gap:6px;align-items:center;}
+  .vote button{border:1px solid var(--line);background:var(--card);border-radius:var(--radius);padding:5px 9px;font-size:13px;cursor:pointer;color:var(--ink);}
+  .vote button:hover{background:var(--line);}
+
+  .empty{padding:50px 20px;text-align:center;color:var(--ink-soft);font-size:14px;border:1px dashed var(--line);border-radius:var(--radius);}
+
+  dialog{display:block;border:none;border-radius:4px;padding:0;max-width:480px;width:460px;color:var(--ink);background:var(--card);margin:30px auto;box-shadow:0 8px 28px rgba(0,0,0,0.28);}
+  dialog:not([open]){display:none;}
+  dialog::backdrop{background:rgba(15,20,28,0.5);}
+  .modal-head{background:var(--rail);color:var(--rail-ink);padding:16px 20px;font-family:'Fraunces',serif;font-size:19px;font-weight:600;}
+  form{padding:18px 20px 20px;display:flex;flex-direction:column;gap:12px;}
+  label{font-size:12.5px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;}
+  input[type=text], input[type=tel], textarea, select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius);font-size:13.5px;background:var(--paper);color:var(--ink);font-family:inherit;}
+  textarea{resize:vertical;min-height:56px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .verify-note{font-size:12px;background:var(--good-bg);color:var(--good);padding:8px 10px;border-radius:var(--radius);display:flex;gap:6px;align-items:center;}
+  .file-row{display:flex;align-items:center;gap:10px;}
+  .file-row img{width:46px;height:46px;object-fit:cover;border-radius:3px;border:1px solid var(--line);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px;}
+  footer{max-width:1000px;margin:0 auto;padding:0 20px 40px;color:var(--ink-soft);font-size:12px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <div class="rail-inner">
+    <div>
+      <p class="word">Quick<span>List</span></p>
+      <p class="tagline">Borrow, buy, sell or share anything on campus — one verified board, no app to install.</p>
+    </div>
+    <div class="stat-strip">
+      <div><b id="statListings">0</b>Live listings</div>
+      <div><b id="statUsers">0</b>Verified students</div>
+      <div><b id="statReturns">0</b>Items returned on time</div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="toolbar">
+    <div class="search">
+      <input id="searchInput" type="text" placeholder="Search — e.g. drill machine, cycle, DS textbook…">
+    </div>
+    <select class="filter" id="typeFilter">
+      <option value="">Any type</option>
+      <option value="Rent">Rent</option>
+      <option value="Borrow">Borrow</option>
+      <option value="Buy/Sell">Buy / Sell</option>
+      <option value="Share">Share</option>
+    </select>
+    <button class="btn btn-primary" id="openAdd">+ Post an item</button>
+  </div>
+
+  <div class="chips" id="categoryChips"></div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="emptyState" style="display:none;">No listings match yet — be the first to post one for this filter.</div>
+</main>
+
+<footer>
+  Prototype for Concept C10 — Lightweight Listing Board, part of the Everyday Evolved campus exchange concept set.
+  Listings are stored only in this browser for demo purposes — nothing is sent to a server.
+</footer>
+
+<dialog id="addDialog">
+  <div class="modal-head">Post a new listing</div>
+  <form id="addForm">
+    <div class="verify-note">✓ College email OTP verified — posting as a checked campus account (simulated for this prototype)</div>
+    <div class="row2">
+      <div>
+        <label for="fName">Your name</label>
+        <input type="text" id="fName" required placeholder="e.g. Surya Abhiram">
+      </div>
+      <div>
+        <label for="fRoll">Roll number</label>
+        <input type="text" id="fRoll" required placeholder="CB.EN.U4ARE24031">
+      </div>
+    </div>
+    <div>
+      <label for="fItem">Item name</label>
+      <input type="text" id="fItem" required placeholder="e.g. Bosch cordless drill">
+    </div>
+    <div class="row2">
+      <div>
+        <label for="fCategory">Category</label>
+        <select id="fCategory">
+          <option>Cycles</option>
+          <option>Books</option>
+          <option>Sports Gear</option>
+          <option>Project Hardware</option>
+          <option>Tools</option>
+          <option>Mess Food</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label for="fType">Exchange type</label>
+        <select id="fType">
+          <option>Rent</option>
+          <option>Borrow</option>
+          <option>Buy/Sell</option>
+          <option>Share</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <label for="fDesc">Short description / condition</label>
+      <textarea id="fDesc" placeholder="Condition, duration needed, price if any…"></textarea>
+    </div>
+    <div>
+      <label for="fContact">Contact (phone or hostel room)</label>
+      <input type="text" id="fContact" required placeholder="e.g. Room 214, Block C / 98xxxxxx10">
+    </div>
+    <div>
+      <label>Condition photo (optional, self-reported)</label>
+      <div class="file-row">
+        <input type="file" id="fPhoto" accept="image/*">
+        <img id="fPhotoPreview" style="display:none;">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="cancelAdd">Cancel</button>
+      <button type="submit" class="btn btn-primary">Post listing</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function(){
+  const CATS = ["All","Cycles","Books","Sports Gear","Project Hardware","Tools","Mess Food","Other"];
+  const LKEY = "quicklist_listings_v1";
+  const RKEY = "quicklist_reputation_v1";
+
+  const seed = [
+    {id:1, name:"Sai Sumedh", roll:"CB.EN.U4ARE24033", item:"Study table lamp", category:"Other", type:"Share", desc:"Extra LED desk lamp, works fine, just don't need two.", contact:"Room 118, Block A", photo:"", status:"open", posted: Date.now()-1000*60*60*20},
+    {id:2, name:"Minakshi Santosh", roll:"CB.EN.U4ARE24024", item:"Data Structures textbook", category:"Books", type:"Rent", desc:"3rd edition, some highlighting in ch. 4-5. Need back before mid-sems.", contact:"98xxxxxx41", photo:"", status:"open", posted: Date.now()-1000*60*60*5},
+    {id:3, name:"Rakesh Agraharam", roll:"CB.EN.U4ARE24001", item:"Badminton racket + shuttles", category:"Sports Gear", type:"Borrow", desc:"Yonex racket, decent condition, comes with a sleeve of shuttles.", contact:"Room 302, Block D", photo:"", status:"open", posted: Date.now()-1000*60*60*70},
+    {id:4, name:"Nehal Rohit", roll:"CB.EN.U4ARE24027", item:"Arduino Uno kit", category:"Project Hardware", type:"Rent", desc:"Full kit with jumper wires + breadboard, for a 2-week project window.", contact:"97xxxxxx02", photo:"", status:"returned", posted: Date.now()-1000*60*60*140},
+  ];
+  const seedRep = {
+    "Sai Sumedh": {up:9, down:1}, "Minakshi Santosh": {up:14, down:0},
+    "Rakesh Agraharam": {up:6, down:1}, "Nehal Rohit": {up:11, down:2},
+  };
+
+  function load(key, fallback){
+    try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch(e){ return fallback; }
+  }
+  function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+
+  let listings = load(LKEY, null);
+  if(!listings){ listings = seed; save(LKEY, listings); }
+  let reputation = load(RKEY, null);
+  if(!reputation){ reputation = seedRep; save(RKEY, reputation); }
+
+  let activeCategory = "All";
+  const grid = document.getElementById('grid');
+  const emptyState = document.getElementById('emptyState');
+  const chipsEl = document.getElementById('categoryChips');
+  const searchInput = document.getElementById('searchInput');
+  const typeFilter = document.getElementById('typeFilter');
+
+  function repFor(name){
+    const r = reputation[name] || {up:0, down:0};
+    const total = r.up + r.down;
+    const pct = total ? Math.round((r.up/total)*100) : null;
+    return { up:r.up, down:r.down, pct:pct };
+  }
+
+  function vote(name, dir){
+    const r = reputation[name] || {up:0, down:0};
+    if(dir === 'up') r.up++; else r.down++;
+    reputation[name] = r;
+    save(RKEY, reputation);
+    render();
+  }
+
+  function markReturned(id){
+    const l = listings.find(x=>x.id===id);
+    if(l){ l.status = 'returned'; save(LKEY, listings); render(); }
+  }
+
+  function revealContact(id){
+    const el = document.getElementById('contact-'+id);
+    if(el) el.style.display = 'block';
+  }
+
+  function renderChips(){
+    chipsEl.innerHTML = '';
+    CATS.forEach(c=>{
+      const b = document.createElement('button');
+      b.className = 'chip' + (activeCategory===c ? ' active' : '');
+      b.textContent = c;
+      b.onclick = ()=>{ activeCategory = c; render(); };
+      chipsEl.appendChild(b);
+    });
+  }
+
+  function render(){
+    renderChips();
+    const q = searchInput.value.trim().toLowerCase();
+    const tf = typeFilter.value;
+    const filtered = listings.filter(l=>{
+      if(activeCategory !== "All" && l.category !== activeCategory) return false;
+      if(tf && l.type !== tf) return false;
+      if(q && !(l.item.toLowerCase().includes(q) || l.desc.toLowerCase().includes(q) || l.category.toLowerCase().includes(q))) return false;
+      return true;
+    }).sort((a,b)=> b.posted - a.posted);
+
+    grid.innerHTML = '';
+    emptyState.style.display = filtered.length ? 'none' : 'block';
+
+    filtered.forEach(l=>{
+      const rep = repFor(l.name);
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <span class="tab">${l.category}</span>
+        ${l.photo ? `<img class="thumb" src="${l.photo}">` : `<div class="thumb-empty">No condition photo added</div>`}
+        <div class="card-body">
+          <div class="card-top">
+            <h3 class="card-title">${escapeHtml(l.item)}</h3>
+            <span class="type-badge">${l.type}</span>
+          </div>
+          <p class="desc">${escapeHtml(l.desc || 'No extra description given.')}</p>
+          <div class="meta">
+            <span>${escapeHtml(l.name)}</span>·
+            <span class="rep ${rep.pct!==null && rep.pct<70 ? 'low':''}">${rep.pct!==null ? rep.pct+'% reliable' : 'New lister'}</span>
+            <span class="status ${l.status==='open'?'open':'returned'}">${l.status==='open' ? 'Available' : 'Returned'}</span>
+          </div>
+          <div class="contact-box" id="contact-${l.id}" style="display:none;">${escapeHtml(l.contact)} · ${escapeHtml(l.roll)}</div>
+          <div class="card-actions">
+            <button class="btn btn-ghost" onclick="QL.reveal(${l.id})">Reveal contact</button>
+            ${l.status==='open' ? `<button class="btn btn-primary" onclick="QL.returned(${l.id})">Mark returned</button>` : ''}
+          </div>
+          <div class="vote">
+            <button onclick="QL.vote('${escapeAttr(l.name)}','up')">👍 ${rep.up}</button>
+            <button onclick="QL.vote('${escapeAttr(l.name)}','down')">👎 ${rep.down}</button>
+            <span style="font-size:11.5px;color:var(--ink-soft);">rate ${l.name.split(' ')[0]}'s reliability</span>
+          </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    document.getElementById('statListings').textContent = listings.filter(l=>l.status==='open').length;
+    document.getElementById('statUsers').textContent = new Set(listings.map(l=>l.name)).size;
+    document.getElementById('statReturns').textContent = listings.filter(l=>l.status==='returned').length;
+  }
+
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+  function escapeAttr(s){ return escapeHtml(s).replace(/`/g,''); }
+
+  window.QL = { vote, returned: markReturned, reveal: revealContact };
+
+  searchInput.addEventListener('input', render);
+  typeFilter.addEventListener('change', render);
+
+  // Add listing modal
+  const dialog = document.getElementById('addDialog');
+  document.getElementById('openAdd').onclick = ()=> dialog.showModal();
+  document.getElementById('cancelAdd').onclick = ()=> dialog.close();
+
+  let pendingPhoto = '';
+  document.getElementById('fPhoto').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      pendingPhoto = ev.target.result;
+      const prev = document.getElementById('fPhotoPreview');
+      prev.src = pendingPhoto;
+      prev.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('addForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const l = {
+      id: Date.now(),
+      name: document.getElementById('fName').value.trim(),
+      roll: document.getElementById('fRoll').value.trim(),
+      item: document.getElementById('fItem').value.trim(),
+      category: document.getElementById('fCategory').value,
+      type: document.getElementById('fType').value,
+      desc: document.getElementById('fDesc').value.trim(),
+      contact: document.getElementById('fContact').value.trim(),
+      photo: pendingPhoto,
+      status: 'open',
+      posted: Date.now()
+    };
+    listings.unshift(l);
+    save(LKEY, listings);
+    if(!reputation[l.name]) reputation[l.name] = {up:0, down:0};
+    save(RKEY, reputation);
+    this.reset();
+    document.getElementById('fPhotoPreview').style.display='none';
+    pendingPhoto = '';
+    dialog.close();
+    activeCategory = "All";
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
